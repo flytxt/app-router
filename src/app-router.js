@@ -5,7 +5,8 @@
   var isIE = 'ActiveXObject' in window;
   var isEdge = (!!window.navigator.userAgent.match(/Edge/));
   var previousUrl = {};
-
+  var Flytxt = window.Flytxt || {};
+  Flytxt.routers = Flytxt.routers || {};
   // <app-router
   //   init="auto|manual"
   //   mode="auto|hash|hashbang|pushstate"
@@ -420,9 +421,10 @@
     if (!router.hasAttribute('core-animated-pages') || eventDetail.route === eventDetail.oldRoute) {
       deactivateRoute(router.previousRoute);
     }
-
-    // add the new content
-    router.activeRoute.appendChild(element);
+    if (utilities.setRouteParentChild(router.activeRoute)) {
+      // add the new content
+      router.activeRoute.appendChild(element);
+    }
 
     // animate the transition if core-animated-pages are being used
     if (router.hasAttribute('core-animated-pages')) {
@@ -453,7 +455,9 @@
       while (node) {
         var nodeToRemove = node;
         node = node.nextSibling;
-        route.removeChild(nodeToRemove);
+        if (utilities.setRouteParentChild(route, true)) {
+          route.removeChild(nodeToRemove);
+        }
       }
     }
   }
@@ -721,6 +725,80 @@
       return false;
     }
     return new RegExp(pattern, options).test(value);
+  };
+
+  utilities.setRouteParentChild = function(route, remove) {
+    var routers = Flytxt.routers;
+    var routeName = utilities.getRouteName(route);
+    if (route.hasAttribute('parent')) {
+      var parent = routers.parent;
+      var compChk = routeName !== parent;
+      if (compChk && !remove) {
+        var prevRoute = Flytxt.routers.prevParentRoute;
+        if (prevRoute && utilities.getRouteName(prevRoute) === Flytxt.routers.parent) {
+          var removeNode = prevRoute.firstChild;
+          removeNode && prevRoute.removeChild(removeNode);
+          Flytxt.routers.child = null;
+        }
+        Flytxt.routers.parent = routeName;
+        Flytxt.routers.prevParentRoute = route;
+      }
+      return compChk;
+    } else {
+      var child = routers.child;
+      var compChk = routeName !== child;
+      var childParent = Flytxt.routers.childParent;
+      var chldPrntRtName = childParent && childParent.routeName;
+      var compChildPrntChk = routeName !== chldPrntRtName;
+      compChk = compChk && compChildPrntChk;
+
+      if (compChk && !remove) {
+        var prevChildRoute = Flytxt.routers.prevChildRoute;
+        if (route.hasAttribute('path')) {
+          utilities.pathCheck(route);
+        }
+        if (prevChildRoute && utilities.getRouteName(prevChildRoute) === Flytxt.routers.child && chldPrntRtName !== utilities.getRouteName(prevChildRoute)) {
+          var removeChildNode = prevChildRoute.firstChild;
+          removeChildNode && prevChildRoute.removeChild(removeChildNode);
+        }
+        if (route.hasAttribute('path')) {
+          var routePath = route.getAttribute('path');
+          var newPath = childParent && childParent.newPath;
+          if (newPath && !routePath.includes(newPath)) {
+            Flytxt.routers.childParent = {};
+          }
+          if (!routePath.includes('/**')) {
+            Flytxt.routers.child = routeName;
+            Flytxt.routers.prevChildRoute = route;
+          }
+        } else {
+          Flytxt.routers.child = routeName;
+          Flytxt.routers.prevChildRoute = route;
+        }
+      }
+      return compChk;
+    }
+  };
+
+  utilities.getRouteName = function(route) {
+    if (route.hasAttribute('element')) {
+      return route.getAttribute('element');
+    } else if (route.hasAttribute('import')) {
+      var importurl = route.getAttribute('import');
+      var urlSplit = importurl.split('/');
+      var name = urlSplit[urlSplit.length - 1];
+      return name.replace(/.html/g, '');
+    }
+  };
+  utilities.pathCheck = function(route) {
+    var path = route.getAttribute('path');
+    var childParent = Flytxt.routers.childParent || {};
+    if (path.includes('/**')) {
+      var newPath = path.replace(/\/\*\*/g, '');
+      childParent.newPath = newPath;
+      childParent.routeName = utilities.getRouteName(route);
+      Flytxt.routers.childParent = childParent;
+    }
   };
 
   document.registerElement('app-router', {
