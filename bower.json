@@ -1,6 +1,6 @@
 {
   "name": "app-router",
-  "version": "2.7.2",
+  "version": "2.7.4",
   "authors": [
     "Erik Ringsmuth <erik.ringsmuth@gmail.com>"
   ],
@@ -13,7 +13,7 @@
   ],
   "main": "app-router.html",
   "license": "MIT",
-  "homepage": "https://github.com/erikringsmuth/app-router",
+  "homepage": "https://github.com/flytxt/app-router",
   "ignore": [
     "**/.*",
     "bower_components",
