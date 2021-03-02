@@ -733,15 +733,26 @@
     if (route.hasAttribute('parent')) {
       var parent = routers.parent;
       var compChk = routeName !== parent;
+      var prntSkipRoute = !route.hasAttribute('skipRoute');
       if (compChk && !remove) {
-        var prevRoute = Flytxt.routers.prevParentRoute;
-        if (prevRoute && utilities.getRouteName(prevRoute) === Flytxt.routers.parent) {
-          var removeNode = prevRoute.firstChild;
-          removeNode && prevRoute.removeChild(removeNode);
-          Flytxt.routers.child = null;
+        if (prntSkipRoute) {
+          var prevRoute = Flytxt.routers.prevParentRoute;
+          if (prevRoute && utilities.getRouteName(prevRoute) === Flytxt.routers.parent) {
+            var removeNode = prevRoute.firstChild;
+            removeNode && prevRoute.removeChild(removeNode);
+            Flytxt.routers.child = null;
+          }
+        } else {
+          compChk = true;
         }
         Flytxt.routers.parent = routeName;
         Flytxt.routers.prevParentRoute = route;
+      } else {
+        if (!prntSkipRoute) {
+          Flytxt.routers.parent = routeName;
+          Flytxt.routers.prevParentRoute = route;
+          compChk = true;
+        }
       }
       return compChk;
     } else {
@@ -751,29 +762,41 @@
       var chldPrntRtName = childParent && childParent.routeName;
       var compChildPrntChk = routeName !== chldPrntRtName;
       compChk = compChk && compChildPrntChk;
-
+      var skipRoute = !route.hasAttribute('skipRoute');
       if (compChk && !remove) {
-        var prevChildRoute = Flytxt.routers.prevChildRoute;
-        if (route.hasAttribute('path')) {
-          utilities.pathCheck(route);
-        }
-        if (prevChildRoute && utilities.getRouteName(prevChildRoute) === Flytxt.routers.child && chldPrntRtName !== utilities.getRouteName(prevChildRoute)) {
-          var removeChildNode = prevChildRoute.firstChild;
-          removeChildNode && prevChildRoute.removeChild(removeChildNode);
-        }
-        if (route.hasAttribute('path')) {
-          var routePath = route.getAttribute('path');
-          var newPath = childParent && childParent.newPath;
-          if (newPath && !routePath.includes(newPath)) {
-            Flytxt.routers.childParent = {};
+        if (skipRoute) {
+          var prevChildRoute = Flytxt.routers.prevChildRoute;
+          if (route.hasAttribute('path')) {
+            utilities.pathCheck(route);
           }
-          if (!routePath.includes('/**')) {
+          if (prevChildRoute && utilities.getRouteName(prevChildRoute) === Flytxt.routers.child && chldPrntRtName !== utilities.getRouteName(prevChildRoute)) {
+            var removeChildNode = prevChildRoute.firstChild;
+            removeChildNode && prevChildRoute.removeChild(removeChildNode);
+          }
+          if (route.hasAttribute('path')) {
+            var routePath = route.getAttribute('path');
+            var newPath = childParent && childParent.newPath;
+            if (newPath && !routePath.includes(newPath)) {
+              Flytxt.routers.childParent = {};
+            }
+            if (!routePath.includes('/**')) {
+              Flytxt.routers.child = routeName;
+              Flytxt.routers.prevChildRoute = route;
+            }
+          } else {
             Flytxt.routers.child = routeName;
             Flytxt.routers.prevChildRoute = route;
           }
         } else {
           Flytxt.routers.child = routeName;
           Flytxt.routers.prevChildRoute = route;
+          compChk = true;
+        }
+      } else {
+        if (!skipRoute) {
+          Flytxt.routers.child = routeName;
+          Flytxt.routers.prevChildRoute = route;
+          compChk = true;
         }
       }
       return compChk;
